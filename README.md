@@ -115,14 +115,15 @@ A Schema can also be used as a custom type object. This way you can create a nes
 | Option | Type | Required | Default | Description
 |--------|------|----------|---------|------------
 | name   | String | No  | - | The name of the schema
-| fakes  | Object,Function | No  | - | A registry of faker methods that can be used to generate fake field data   
+| fakes  | Object,Function | No  | - | A registry of faker methods that can be used to for fake field data
+| defaults  | Object,Function | No  | - | A registry of defaults methods that can be used for default data   
 | fields | Object,Function | Yes | - | An object with fields definition. You should pass a function which returns the definition object in case of self referencing.
 | strict | Boolean | No | true | A schema type (set to `false` to allow dynamic fields not defined in schema).
 | validatorOptions | Object | No | validatable.js defaults | Configuration options for the `Validator` class, provided by the [validatable.js](https://github.com/xpepermint/validatablejs), which is used for field validation.
 | typeOptions | Object | No | typeable.js defaults | Configuration options for the `cast` method provided by the [typeable.js](https://github.com/xpepermint/typeablejs), which is used for data type casting.
 ```js
 
-// reusable fakers
+// reusable fakes
 const fakes = {
   // default faker functions if no key for schema name
   title: () => {
@@ -137,8 +138,16 @@ const fakes = {
   }
 }
 
+// reusable defaults
+const defaults = {
+  title: 'no title'
+  // ... same as for fakes
+}
+
+
 new Schema({
   fakes, 
+  defaults,
   fields: { // schema fields definition
     email: { // a field name holding a field definition
       type: 'String', // a field data type provided by typeable.js
@@ -393,6 +402,10 @@ user.$name.isChanged(); // -> calling field instance method
 
 > Sets the field to its default value.
 
+**Field.prototype.fake()**: Field
+
+> Sets the field to a fake value.
+
 **Field.prototype.rollback()**: Field
 
 > Sets the field to its initial value (last committed value). This is how you can discharge field's changes.
@@ -404,6 +417,53 @@ user.$name.isChanged(); // -> calling field instance method
 **Field.prototype.value**: Any
 
 > A getter and setter for the value of the field.
+
+### SchemaMaster
+
+The `schemaMaster` can be used to define global registries for:
+- schemas
+- fakes
+- defaults 
+
+When schemas can be registered, you gain the ability to build schemas from mixins, ie. reusable schema "fragments".
+You can use this to extend schemas, such as for specializations (similar to models/classes)
+
+Fakes and defaults registries can also be registered and will be available for all schemas registered on the `schemaMaster`. 
+
+Note: Using the `schemaMaster` is fully optional. 
+
+```js
+const m = schemaMaster({
+  name: 'master blaster',
+  defaults: {
+    age: 18
+  },
+  fakes: {
+    country: 'UK'      
+  }
+})  
+
+let personSchema = m.createSchema({
+  name: 'Person',
+  fields: () => ({
+    name: {
+      type: 'String'
+      defaultValue: ''
+    },
+    age: {
+      type: 'Integer'
+    }
+    country: {
+      type: 'String',
+      defaultValue: ''
+    }
+  })
+});
+```
+
+When you generate field data for a document, the field will first try to use local `fakes` and `defaults` registries defined directly on the schema (if available).
+Then the field will check to see if the schema is registered with a `schemaMaster`. If so, it will use the `schemaMaster` registries to 
+create fake/default field data.   
 
 ### ValidationError
 

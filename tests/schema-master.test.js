@@ -10,7 +10,15 @@ function displayObj(label, obj) {
 }
 
 test('schema master', (t) => {
-  const m = schemaMaster({name: 'master blaster'})  
+  const m = schemaMaster({
+    name: 'master blaster',
+    defaults: {
+      age: 18
+    },
+    fakes: {
+      country: 'UK'      
+    }
+  })  
 
   let personSchema = m.createSchema({
     name: 'Person',
@@ -19,8 +27,8 @@ test('schema master', (t) => {
         type: 'String'
       },
       age: {
-        type: 'Integer',
-        defaultValue: 18
+        type: 'Integer'
+        // defaultValue: 18
       }
     })
   });

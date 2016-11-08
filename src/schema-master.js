@@ -21,19 +21,27 @@ class Registry {
 
 export class SchemaMaster {
   constructor(opts = {}) {
-    this.registry = opts.registry || new Registry()
+    this.registry = {
+      fakes: opts.fakes || {},
+      defaults: opts.defaults || {},
+      schemas: opts.schemas || new Registry()
+    }
+  }
+
+  get schemas() {
+    return this.registry.schemas
   }
 
   names() {
-    return this.registry.names()
+    return this.schemas.names()
   }
 
   get(name) {
-    return this.registry.get(name)
+    return this.schemas.get(name)
   }
 
   set(name, schema) {
-    this.registry.set(name, schema)
+    this.schemas.set(name, schema)
   }
 
   createSchema(obj) {

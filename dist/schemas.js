@@ -24,9 +24,9 @@ class Schema {
 
   lookupSchema(name) {
     try {
-      let registry = this.registry || (this.master || {}).registry;
-      let found = registry.get(name) || {};
-      return found;
+      let schemas = this.master && this.master.schemas;
+      if (!schemas) return {};
+      return schemas.get(name) || {};
     } catch (err) {
       return {};
     }

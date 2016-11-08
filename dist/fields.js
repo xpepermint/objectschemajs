@@ -27,6 +27,39 @@ var _errors = require('./errors');
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+function generateFrom(registry, name) {
+  if (!registry) return;
+  if (typeof registry !== 'object') return;
+
+  let valueGen = registry[name];
+  if (!valueGen) return;
+
+  switch (typeof valueGen) {
+    case 'function':
+      return valueGen();
+    default:
+      return valueGen;
+  }
+}
+
+function registryResolver($schema, type) {
+  return function (name) {
+    let registry = $schema[type];
+
+    // if no local schema fakes registry
+    // try global registry from schema master
+    if (!registry && $schema.registry) {
+      registry = $schema.registry[type];
+    }
+
+    if (registry) {
+      registry = registry.schemas && $schema.name ? registry.schemas[$schema.name] : registry;
+      let value = generateFrom(registry, name);
+      return value;
+    }
+  };
+}
+
 /*
 * Document field class.
 */
@@ -107,6 +140,9 @@ class Field {
 
     let value = (0, _typeable.isFunction)(defaultValue) ? defaultValue(this._document) : defaultValue;
 
+    let resolve = registryResolver(this.$owner.$schema, 'defaults');
+    value = value || resolve(this.name);
+
     value = this._cast(value, type); // value type casting
     if (set) {
       // custom setter
@@ -125,23 +161,8 @@ class Field {
 
     let value = (0, _typeable.isFunction)(fakeValue) ? fakeValue(this._document) : fakeValue;
 
-    function generateFrom(fakes, name) {
-      if (!fakes) return;
-      if (typeof fakes !== 'object') return;
-
-      let fakeGen = fakes[name];
-      if (!fakeGen) return;
-
-      if (typeof fakeGen === 'function') {
-        return fakeGen();
-      }
-    }
-    let schema = this.$owner.$schema;
-    let fakes = this.$owner.$schema.fakes;
-    if (!value && fakes) {
-      let schemaFaker = fakes.schemas ? fakes.schemas[schema.name] : fakes;
-      value = generateFrom(schemaFaker, this.name);
-    }
+    let resolve = registryResolver(this.$owner.$schema, 'fakes');
+    value = value || resolve(this.name);
 
     value = this._cast(value, type); // value type casting
     if (set) {
