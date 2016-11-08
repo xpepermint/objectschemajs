@@ -36,10 +36,11 @@ class SchemaMaster {
   constructor() {
     let opts = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
+    this.name = opts.name;
     this.registry = {
       fakes: opts.fakes || {},
       defaults: opts.defaults || {},
-      schemas: opts.registry || new Registry()
+      schemas: opts.schemas || new Registry()
     };
   }
 

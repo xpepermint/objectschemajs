@@ -433,8 +433,12 @@ Fakes and defaults registries can also be registered and will be available for a
 Note: Using the `schemaMaster` is fully optional. 
 
 ```js
+import { schemaMaster } from 'objectschema'
+import schemas from './schemas/base' 
+
 const m = schemaMaster({
   name: 'master blaster',
+  schemas,
   defaults: {
     age: 18
   },
@@ -463,7 +467,44 @@ let personSchema = m.createSchema({
 
 When you generate field data for a document, the field will first try to use local `fakes` and `defaults` registries defined directly on the schema (if available).
 Then the field will check to see if the schema is registered with a `schemaMaster`. If so, it will use the `schemaMaster` registries to 
-create fake/default field data.   
+create fake/default field data.
+
+Also notice how we import an existing `schemas` registry which we use as the "base" for our schema master, so we can use them 
+as building blocks using mixins
+
+*Schema mixins*
+
+With `schemaMaster` we gain the ability to use mixins with our schemas. We simply add a mixins property with a list of schemas 
+to mixin. We can mixin either by schema reference or by name. By name requires that a schema of that exact name has already been registered.
+We recommend registering schemas using class name "form" such as `AdminUser`.     
+
+```js
+let userSchema = m.createSchema({
+  name: 'User',
+  mixins: [personSchema],
+  fields: {
+    enabled: {
+      type: 'Boolean'
+    },
+    tags: {
+      type: ['String']
+    },
+    keywords: {
+      type: []
+    }
+  }
+});
+
+let overrideSchema = m.createSchema({
+  name: 'Override',
+  mixins: ['User'],
+  fields: {
+    enabled: {
+      type: 'String'
+    }
+  }
+})
+```
 
 ### ValidationError
 

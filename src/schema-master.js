@@ -21,6 +21,7 @@ class Registry {
 
 export class SchemaMaster {
   constructor(opts = {}) {
+    this.name = opts.name 
     this.registry = {
       fakes: opts.fakes || {},
       defaults: opts.defaults || {},
