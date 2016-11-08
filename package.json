@@ -5,8 +5,8 @@
   "main": "./dist/index.js",
   "ava": {
     "files": [
-      "./tests/*.js",
-      "./tests/**/*.js"
+      "./tests/*.test.js",
+      "./tests/**/*.test.js"
     ],
     "concurrency": 4,
     "failFast": true
@@ -50,6 +50,7 @@
   "dependencies": {
     "deep-equal": "1.0.x",
     "faker": "^3.1.0",
+    "lodash.merge": "^4.6.0",
     "typeable": "0.10.x",
     "validatable": "0.13.x"
   }

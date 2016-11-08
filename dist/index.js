@@ -3,13 +3,15 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.ValidatorError = exports.ValidationError = exports.Field = exports.Document = exports.Schema = undefined;
+exports.schemaMaster = exports.ValidatorError = exports.ValidationError = exports.Field = exports.Document = exports.Schema = undefined;
 
 var _schemas = require('./schemas');
 
 var _documents = require('./documents');
 
 var _fields = require('./fields');
+
+var _schemaMaster = require('./schema-master');
 
 var _errors = require('./errors');
 
@@ -22,3 +24,4 @@ exports.Document = _documents.Document;
 exports.Field = _fields.Field;
 exports.ValidationError = _errors.ValidationError;
 exports.ValidatorError = _errors.ValidatorError;
+exports.schemaMaster = _schemaMaster.schemaMaster;
