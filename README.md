@@ -43,7 +43,11 @@ import {
 let bookSchema = new Schema({
   fields: {
     title: {
-      type: 'String'
+      type: 'String',
+      defaultValue: 'Lord of the flies',
+      fakeValue: () => {
+        return faker.lorem.sentence()
+      }
     }
   }
 });
@@ -81,8 +85,15 @@ let data = {
 };
 
 let user = new Document(userSchema, data);
+user.title // => True Detective
 await user.validate({quiet: true});
 user.isValid(); // -> false
+
+// generate fake data
+user.fake()
+user.title // => lorem ipsum
+user.reset() // use default value
+user.title // => Lord of the flies
 ```
 
 ## API
@@ -97,23 +108,50 @@ Schema represents a configuration object which configures the `Document`. It hol
 
 A Schema can also be used as a custom type object. This way you can create a nested data structure by setting a schema instance for a field `type`. When a document is created, each schema in a tree of fields will become an instance of a Document - a tree of documents.
 
-**Schema({fields, strict, validatorOptions, typeOptions})**
+**Schema({fakerRegistry, fields, strict, validatorOptions, typeOptions})**
 
 > A class for defining document structure.
 
 | Option | Type | Required | Default | Description
 |--------|------|----------|---------|------------
+| name   | String | No  | - | The name of the schema
+| fakes  | Object,Function | No  | - | A registry of faker methods that can be used to for fake field data
+| defaults  | Object,Function | No  | - | A registry of defaults methods that can be used for default data   
 | fields | Object,Function | Yes | - | An object with fields definition. You should pass a function which returns the definition object in case of self referencing.
 | strict | Boolean | No | true | A schema type (set to `false` to allow dynamic fields not defined in schema).
 | validatorOptions | Object | No | validatable.js defaults | Configuration options for the `Validator` class, provided by the [validatable.js](https://github.com/xpepermint/validatablejs), which is used for field validation.
 | typeOptions | Object | No | typeable.js defaults | Configuration options for the `cast` method provided by the [typeable.js](https://github.com/xpepermint/typeablejs), which is used for data type casting.
 ```js
 
+// reusable fakes
+const fakes = {
+  // default faker functions if no key for schema name
+  title: () => {
+    return faker.lorem.sentence()
+  },
+  schemas: {
+    book: { // used by book schema if present
+      title: () => {
+        return faker.book.title()
+      },    
+    }
+  }
+}
+
+// reusable defaults
+const defaults = {
+  title: 'no title'
+  // ... same as for fakes
+}
+
+
 new Schema({
+  fakes, 
+  defaults,
   fields: { // schema fields definition
     email: { // a field name holding a field definition
       type: 'String', // a field data type provided by typeable.js
-      defaultValue: 'John Smith', // a default field value
+      defaultValue: 'John Smith', // a default field value 
       validate: [ // field validations provided by validatable.js
         { // validator recipe
           validator: 'presence', // validator name
@@ -267,6 +305,10 @@ doc.applyErrors([
 
 > Sets each document field to its default value.
 
+**Document.prototype.fake()**: Document
+
+> Sets each document field to its fake value if a fake value generator is registered either on the field itself or in the fake registry of the schema (if not uses default value if present) 
+
 **Document.prototype.rollback()**: Document
 
 > Sets each document field to its initial value (last committed value). This is how you can discharge document changes.
@@ -360,6 +402,10 @@ user.$name.isChanged(); // -> calling field instance method
 
 > Sets the field to its default value.
 
+**Field.prototype.fake()**: Field
+
+> Sets the field to a fake value.
+
 **Field.prototype.rollback()**: Field
 
 > Sets the field to its initial value (last committed value). This is how you can discharge field's changes.
@@ -371,6 +417,94 @@ user.$name.isChanged(); // -> calling field instance method
 **Field.prototype.value**: Any
 
 > A getter and setter for the value of the field.
+
+### SchemaMaster
+
+The `schemaMaster` can be used to define global registries for:
+- schemas
+- fakes
+- defaults 
+
+When schemas can be registered, you gain the ability to build schemas from mixins, ie. reusable schema "fragments".
+You can use this to extend schemas, such as for specializations (similar to models/classes)
+
+Fakes and defaults registries can also be registered and will be available for all schemas registered on the `schemaMaster`. 
+
+Note: Using the `schemaMaster` is fully optional. 
+
+```js
+import { schemaMaster } from 'objectschema'
+import schemas from './schemas/base' 
+
+const m = schemaMaster({
+  name: 'master blaster',
+  schemas,
+  defaults: {
+    age: 18
+  },
+  fakes: {
+    country: 'UK'      
+  }
+})  
+
+let personSchema = m.createSchema({
+  name: 'Person',
+  fields: () => ({
+    name: {
+      type: 'String'
+      defaultValue: ''
+    },
+    age: {
+      type: 'Integer'
+    }
+    country: {
+      type: 'String',
+      defaultValue: ''
+    }
+  })
+});
+```
+
+When you generate field data for a document, the field will first try to use local `fakes` and `defaults` registries defined directly on the schema (if available).
+Then the field will check to see if the schema is registered with a `schemaMaster`. If so, it will use the `schemaMaster` registries to 
+create fake/default field data.
+
+Also notice how we import an existing `schemas` registry which we use as the "base" for our schema master, so we can use them 
+as building blocks using mixins
+
+*Schema mixins*
+
+With `schemaMaster` we gain the ability to use mixins with our schemas. We simply add a mixins property with a list of schemas 
+to mixin. We can mixin either by schema reference or by name. By name requires that a schema of that exact name has already been registered.
+We recommend registering schemas using class name "form" such as `AdminUser`.     
+
+```js
+let userSchema = m.createSchema({
+  name: 'User',
+  mixins: [personSchema],
+  fields: {
+    enabled: {
+      type: 'Boolean'
+    },
+    tags: {
+      type: ['String']
+    },
+    keywords: {
+      type: []
+    }
+  }
+});
+
+let overrideSchema = m.createSchema({
+  name: 'Override',
+  mixins: ['User'],
+  fields: {
+    enabled: {
+      type: 'String'
+    }
+  }
+})
+```
 
 ### ValidationError
 

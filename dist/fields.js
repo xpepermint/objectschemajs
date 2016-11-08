@@ -27,6 +27,39 @@ var _errors = require('./errors');
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+function generateFrom(registry, name) {
+  if (!registry) return;
+  if (typeof registry !== 'object') return;
+
+  let valueGen = registry[name];
+  if (!valueGen) return;
+
+  switch (typeof valueGen) {
+    case 'function':
+      return valueGen();
+    default:
+      return valueGen;
+  }
+}
+
+function registryResolver($schema, type) {
+  return function (name) {
+    let registry = $schema[type];
+
+    // if no local schema fakes registry
+    // try global registry from schema master
+    if (!registry && $schema.registry) {
+      registry = $schema.registry[type];
+    }
+
+    if (registry) {
+      registry = registry.schemas && $schema.name ? registry.schemas[$schema.name] : registry;
+      let value = generateFrom(registry, name);
+      return value;
+    }
+  };
+}
+
 /*
 * Document field class.
 */
@@ -107,6 +140,30 @@ class Field {
 
     let value = (0, _typeable.isFunction)(defaultValue) ? defaultValue(this._document) : defaultValue;
 
+    let resolve = registryResolver(this.$owner.$schema, 'defaults');
+    value = value || resolve(this.name);
+
+    value = this._cast(value, type); // value type casting
+    if (set) {
+      // custom setter
+      value = set.call(this.$owner, value);
+    }
+
+    return value;
+  }
+
+  get fakeValue() {
+    var _$owner$$schema$field3 = this.$owner.$schema.fields[this.name];
+    let type = _$owner$$schema$field3.type,
+        set = _$owner$$schema$field3.set,
+        fakeValue = _$owner$$schema$field3.fakeValue;
+
+
+    let value = (0, _typeable.isFunction)(fakeValue) ? fakeValue(this._document) : fakeValue;
+
+    let resolve = registryResolver(this.$owner.$schema, 'fakes');
+    value = value || resolve(this.name);
+
     value = this._cast(value, type); // value type casting
     if (set) {
       // custom setter
@@ -177,6 +234,16 @@ class Field {
 
   reset() {
     this.value = this.defaultValue;
+
+    return this;
+  }
+
+  /*
+  * Sets field to a generated fake value.
+  */
+
+  fake() {
+    this.value = this.fakeValue || this.defaultValue;
 
     return this;
   }

@@ -1,6 +1,7 @@
 import {Schema} from './schemas';
 import {Document} from './documents';
 import {Field} from './fields';
+import {schemaMaster} from './schema-master';
 import {
   ValidationError,
   ValidatorError
@@ -15,5 +16,6 @@ export {
   Document,
   Field,
   ValidationError,
-  ValidatorError
+  ValidatorError,
+  schemaMaster
 };

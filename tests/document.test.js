@@ -1,10 +1,15 @@
 import test from 'ava';
+import faker from 'faker';
 import {
   Document,
   Schema,
   ValidationError,
   ValidatorError
 } from '../dist';
+
+function displayObj(label, obj) {
+  console.log(label, '>>', JSON.stringify(obj, null, 2))
+}
 
 test('field value should be converted to the specified type', (t) => {
   let bookSchema = new Schema({
@@ -97,20 +102,51 @@ test('field can be of a custom type', (t) => {
   t.is(user.name, '100-cool');
 });
 
+// reusable fakers
+const fakes = {
+  title: () => {
+    return faker.lorem.sentence()
+  },
+  schemas: {
+    book: {
+      title: () => {
+        return 'random book title'
+      }
+    }
+  }
+}
+
 test('field can have a default value', (t) => {
   let bookSchema = new Schema({
+    name: 'book',
+    fakes,
     fields: {
       title: {
         type: 'String',
-        defaultValue: 100
+        defaultValue: 'blip blap'
+        // fakeValue: () => {
+        //   return fakerRegistry.title()
+        // }
+      },
+      price: {
+        type: 'Integer',
+        defaultValue: 10,        
       }
     }
   });
   let userSchema = new Schema({
+    name: 'user',
+    fakes,    
     fields: {
       name: {
         type: 'String',
-        defaultValue: 100
+        defaultValue: 100,
+        fakeValue: () => {
+          return faker.name.findName()
+        }        
+      },
+      title: {
+        type: 'String',
       },
       age: {
         type: 'Integer',
@@ -146,14 +182,34 @@ test('field can have a default value', (t) => {
   };
   let user0 = new Document(userSchema);
   let user1 = new Document(userSchema, data);
+  let user2 = new Document(userSchema);
+
   let book0 = new Document(bookSchema);
   let book1 = new Document(bookSchema, data.books[1])
+  let book2 = new Document(bookSchema);
+
+  let fakeUser = new Document(userSchema);
+  let fakeBook = new Document(bookSchema);
+
+  user2.reset()
+  fakeUser.fake()
+
+  book2.reset()
+  fakeBook.fake()
+
+  // displayObj('user', fakeUser)
+  // displayObj('book', fakeBook)
+
+  t.not(user2.name, fakeUser.name);
+
+  t.is(book2.price, fakeBook.price);
+  t.not(book2.title, fakeBook.title);
 
   t.is(user0.name, '100');
   t.is(user0.age, 35);
   t.is(user0.enabled, true);
   t.is(user0.book, null);
-  t.deepEqual(user0.papers, [{title: 'Foo'}]);
+  t.deepEqual(user0.papers, [{title: 'Foo', price: 10}]);
   t.deepEqual(user1.books, [null, book1]);
   t.is(user1.books[0], null);
   t.is(user1.books[1].title, '100');
